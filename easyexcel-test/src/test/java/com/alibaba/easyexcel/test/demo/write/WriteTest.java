@@ -1,16 +1,7 @@
 package com.alibaba.easyexcel.test.demo.write;
 
-import java.io.File;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.*;
-import java.util.stream.Collectors;
-
 import com.alibaba.easyexcel.test.core.head.ComplexHeadData;
-import com.alibaba.easyexcel.test.demo.read.DemoData;
-import com.alibaba.easyexcel.test.demo.read.DemoDataListener;
-import com.alibaba.easyexcel.test.demo.read.RoleRelationEmployeeListener;
-import com.alibaba.easyexcel.test.demo.read.RoleRelationEmployeeVo;
+import com.alibaba.easyexcel.test.demo.read.*;
 import com.alibaba.easyexcel.test.util.TestFileUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelWriter;
@@ -21,14 +12,9 @@ import com.alibaba.excel.annotation.write.style.ColumnWidth;
 import com.alibaba.excel.annotation.write.style.ContentRowHeight;
 import com.alibaba.excel.annotation.write.style.HeadRowHeight;
 import com.alibaba.excel.enums.CellDataTypeEnum;
-import com.alibaba.excel.metadata.data.CommentData;
-import com.alibaba.excel.metadata.data.FormulaData;
-import com.alibaba.excel.metadata.data.HyperlinkData;
+import com.alibaba.excel.metadata.data.*;
 import com.alibaba.excel.metadata.data.HyperlinkData.HyperlinkType;
-import com.alibaba.excel.metadata.data.ImageData;
 import com.alibaba.excel.metadata.data.ImageData.ImageType;
-import com.alibaba.excel.metadata.data.RichTextStringData;
-import com.alibaba.excel.metadata.data.WriteCellData;
 import com.alibaba.excel.util.BooleanUtils;
 import com.alibaba.excel.util.FileUtils;
 import com.alibaba.excel.util.ListUtils;
@@ -42,15 +28,16 @@ import com.alibaba.excel.write.metadata.style.WriteCellStyle;
 import com.alibaba.excel.write.metadata.style.WriteFont;
 import com.alibaba.excel.write.style.HorizontalCellStyleStrategy;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
-
 import org.apache.commons.compress.utils.Lists;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.FillPatternType;
-import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 写的常见写法
@@ -117,6 +104,9 @@ public class WriteTest {
     System.out.println("export-end!exportFilaName=" + exportFilaName);
   }
 
+  /**
+   * 员工关联角色，填充工号
+   */
   @Test
   public void simpleRoleRelationEmployeeWrite() {
     String fileName = TestFileUtil.getPath() + "demo" + File.separator + "role" + File.separator + "test1.xlsx";
@@ -147,6 +137,41 @@ public class WriteTest {
     EasyExcel.write(exportFilaName, RoleRelationEmployeeVo.class).sheet("导出结果").doWrite(importVoList);
 
     System.out.println("simpleRoleRelationEmployeeWrite-end,fileName=" + exportFilaName);
+  }
+
+  /**
+   * 员工关联角色，填充工号
+   */
+  @Test
+  public void employeeWorkNumberWrite() {
+    String fileName = TestFileUtil.getPath() + "demo" + File.separator + "role" + File.separator + "workNumber.xlsx";
+    WorkNumberListener importVoListListener = new WorkNumberListener();
+    // 这里 需要指定读用哪个class去读，然后读取第一个sheet 文件流会自动关闭
+    EasyExcel.read(fileName, WorkNumberVo.class, importVoListListener).sheet().doRead();
+
+    List<WorkNumberVo> importVoList = importVoListListener.cachedDataList;
+
+    importVoList.forEach(importVo -> {
+      if (StringUtils.isBlank(importVo.getEmployeeNumber())) {
+        return;
+      }
+      String employeeNumber = importVo.getEmployeeNumber();
+      if (Objects.equals(employeeNumber.length(), 5)) {
+        return;
+      }
+      StringBuilder newWorkNumber = new StringBuilder(StringUtils.EMPTY);
+      for (int i = 0; i < 5 - employeeNumber.length(); i++) {
+        newWorkNumber.append("0");
+      }
+      newWorkNumber.append(employeeNumber);
+      importVo.setEmployeeNumber(newWorkNumber.toString());
+      System.out.println("importVo-new,vo=" + importVo);
+    });
+
+    String exportFilaName = TestFileUtil.getPath() + "workNumber" + System.currentTimeMillis() + ".xlsx";
+    EasyExcel.write(exportFilaName, WorkNumberVo.class).sheet("导出结果").doWrite(importVoList);
+
+    System.out.println("employeeWorkNumberWrite-end,fileName=" + exportFilaName);
   }
 
   /**
